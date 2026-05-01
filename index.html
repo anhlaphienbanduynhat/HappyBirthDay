@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chúc Mừng Sinh Nhật Nhi</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; overflow-x: hidden;
+        }
+        .card {
+            background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 450px; width: 90%; position: relative; z-index: 10;
+            transition: all 0.3s ease-out; 
+        }
+        h2 { color: #d35400; margin-top: 0; margin-bottom: 25px; font-size: 1.6em; }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; margin-bottom: 8px; color: #7f8c8d; font-weight: bold; font-size: 0.9em; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; outline: none; font-size: 1em; }
+        
+        .btn { border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 50px; cursor: pointer; transition: 0.3s; color: white; font-weight: bold; }
+        .btn-verify { background-color: #e67e22; width: 100%; }
+        
+        #yes-btn { background-color: #2ecc71 !important; margin-right: 10px; }
+        #no-btn { background-color: #e74c3c !important; }
+        .btn:hover { opacity: 0.9; transform: scale(1.05); }
+
+        #interactive-section { display: none; margin-top: 20px; padding: 25px; border: 2px dashed #f8b500; border-radius: 15px; background: #fffdf9; }
+        
+        .photo-float {
+            position: fixed; width: 160px; height: auto; border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1;
+            border: 4px solid white; object-fit: cover;
+            animation: float-around 5s infinite ease-in-out;
+            opacity: 0; transition: opacity 1s;
+        }
+        @keyframes float-around {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-25px) rotate(3deg); }
+        }
+        .p1 { top: 8%; left: 5%; } .p2 { top: 12%; right: 5%; }
+        .p3 { bottom: 10%; left: 8%; } .p4 { bottom: 15%; right: 8%; }
+
+        #letter-container {
+            display: none; max-width: 650px; width: 85%; text-align: left;
+            line-height: 1.8; font-size: 1.1em; color: #333; background: #fff;
+            padding: 45px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); border-radius: 15px;
+            margin: 20px auto; max-height: 80vh; overflow-y: auto; position: relative; z-index: 10;
+        }
+        #cursor { display: inline-block; width: 8px; height: 1.2em; background: #e67e22; margin-left: 5px; animation: blink 0.7s infinite; vertical-align: middle; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .signature-block { text-align: right; margin-top: 40px; font-style: italic; border-top: 1px solid #f0f0f0; padding-top: 20px; }
+        #timer-num { font-weight: bold; color: #e67e22; font-size: 2em; }
+    </style>
+</head>
+<body>
+
+    <audio id="birthday-song">
+        <source src="" type="audio/mpeg">
+    </audio>
+    
+    <div id="content-wrapper" style="width: 100%; display: flex; justify-content: center;">
+        <div id="main-card" class="card">
+            <div id="login-part">
+                <h2 id="login-title"> Đăng Nhập 🤣 </h2>
+                <div class="input-group">
+                    <label id="label-name">Nhập họ và tên người yêu cũ gần nhất của Nhi =)))</label>
+                    <input type="text" id="fullname" placeholder="Nhập họ và tên...">
+                </div>
+                <div class="input-group">
+                    <label id="label-date">Mật khẩu là ngày sinh của người yêu cũ Nhi</label>
+                    <input type="date" id="birthdate">
+                </div>
+                <button class="btn btn-verify" onclick="handleLogin()">Xác minh</button>
+            </div>
+            
+            <div id="interactive-section">
+                <div id="troll-text" style="color: #e74c3c; margin-bottom: 15px; font-weight: bold;"></div>
+                <p class="question-text" style="font-weight: bold; font-size: 1.2em;">Nhi có muốn chuyển cho Dũ 10 tỉ nhân ngày sinh nhật của mình hong? 💸</p>
+                <div class="btn-group" style="display: flex; justify-content: center; margin-top: 20px;">
+                    <button id="yes-btn" class="btn" onclick="dealSuccess()">Cóa</button>
+                    <button id="no-btn" class="btn" onclick="teleportCard()">Hong</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let loginStep = 1; 
+        const NHI_BIRTHDAY = "2006-05-02"; 
+        const song = document.getElementById('birthday-song');
+        
+        // Danh sách nhạc - NHỚ ĐỔI TÊN FILE KHÔNG DẤU NẾU LỖI
+        const playlist = [
+            "happy-birthday.mp3",
+            "happy birthday to me...mp3",
+            "Happy birthday to you 1 ảnh nhẹ nhàng giọng Độ Mixi.mp3"
+        ];
+        let currentTrackIndex = 0;
+
+        function playNextTrack() {
+            song.src = playlist[currentTrackIndex];
+            song.play().catch(e => console.log(""));
+            currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+        }
+
+        song.onended = playNextTrack;
+
+        function handleLogin() {
+            const name = document.getElementById('fullname').value.trim();
+            const date = document.getElementById('birthdate').value;
+
+            // Kích hoạt âm thanh ẩn ngay lần click đầu tiên để "xin quyền" trình duyệt
+            song.play().then(() => { song.pause(); }).catch(e => {});
+
+            if (loginStep === 1) {
+                if (name === "" || date === "") {
+                    alert("Nhập đúng thông tin nhe Nhi ơi, hong bị lỗi á!");
+                } else {
+                    alert("nè he!!! còn nhớ tên của người yêu cũ luôn he, dị mà hổm khóc lóc với dũ bảo là quên ảnh gòi he =))) tài khoản và mật khẩu là họ tên của Nhi và ngày sinh đó !!!");
+                    loginStep = 2;
+                    document.getElementById('fullname').value = "";
+                    document.getElementById('birthdate').value = "";
+                    document.getElementById('label-name').innerText = "Nhập họ và tên của Nhi";
+                    document.getElementById('label-date').innerText = "Ngày sinh của Nhi";
+                    document.getElementById('fullname').placeholder = "Họ và Tên của Nhi là...";
+                    document.getElementById('login-title').innerText = " Đăng Nhập ";
+                }
+            } else {
+                if (name.toLowerCase().includes("đặng ngọc phương nhi") && date === NHI_BIRTHDAY) {
+                    document.getElementById('login-part').style.display = 'none';
+                    document.getElementById('interactive-section').style.display = 'block';
+                } else {
+                    alert("Nhập đúng Họ Tên Nhi và ngày sinh nha!!!");
+                }
+            }
+        }
+
+        function teleportCard() {
+            const card = document.getElementById('main-card');
+            const messages = ["Bấm nhầm rùi kìa! 😂", "Hông thoát được đâu!!!", "Ấn hong là còn nhớ Người Yêu Cũ"];
+            document.getElementById('troll-text').innerText = messages[Math.floor(Math.random() * messages.length)];
+            const maxX = window.innerWidth - card.offsetWidth - 40;
+            const maxY = window.innerHeight - card.offsetHeight - 40;
+            card.style.position = 'fixed';
+            card.style.left = Math.max(20, Math.random() * maxX) + 'px';
+            card.style.top = Math.max(20, Math.random() * maxY) + 'px';
+        }
+
+        function dealSuccess() {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            document.getElementById('content-wrapper').innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <h1 style="font-size: 80px; margin: 0;">🤑</h1>
+                    <h1 style="color: #27ae60; font-size: 3.5em; margin: 10px 0;">CHỐT ĐƠN!</h1>
+                    <p style="font-size: 1.5em; color: #2c3e50;">10 tỷ đã về túi Dũ '99999999999985 TECHCOMBANK' nha Nhi =))</p>
+                    <div class="countdown-footer">
+                        <p style="font-size: 1.1em; color: #333;">Món quà thật sự sẽ có sau... <br><span id="timer-num">5</span>s</p>
+                    </div>
+                </div>`;
+
+            let timeLeft = 5;
+            const timer = setInterval(() => {
+                timeLeft--;
+                const display = document.getElementById('timer-num');
+                if(display) display.innerText = timeLeft;
+                if (timeLeft <= 0) { 
+                    clearInterval(timer); 
+                    startTypewriter(); 
+                }
+            }, 1000);
+        }
+
+        function startTypewriter() {
+            // PHÁT NHẠC TẠI ĐÂY - Sau khi hết 5 giây
+            playNextTrack();
+            song.volume = 0.6;
+
+            const wrapper = document.getElementById('content-wrapper');
+            wrapper.innerHTML = ""; 
+            document.body.style.background = "#f7f7f7";
+            
+            const photoLinks = ["images/Nhi1.jpg", "images/Nhi2.jpg", "images/Nhi3.jpg", "images/Nhi4.jpg"];
+            photoLinks.forEach((link, index) => {
+                let img = document.createElement('img');
+                img.src = link;
+                img.className = `photo-float p${index + 1}`;
+                img.onerror = function() { this.src = "https://picsum.photos/400/500?random=" + index; };
+                document.body.appendChild(img);
+                setTimeout(() => img.style.opacity = "1", 100);
+            });
+
+            const container = document.createElement('div');
+            container.id = 'letter-container';
+            container.style.display = 'block';
+            container.innerHTML = '<span id="letter-content"></span><span id="cursor"></span>';
+            wrapper.appendChild(container);
+
+            const letterBody = `Gửi Nhi, Vậy là cái giao dịch 10 tỷ vừa rồi đã chính thức 'về túi' Dũ rồi nhé, Nhi hông được đòi lại đâu đấy! Nhưng mà nói thật lòng, dù có 10 tỷ hay 100 tỷ đi nữa thì cũng chẳng thể nào quý giá bằng việc có Nhi bên cạnh Dũ trong những năm tháng thanh xuân này. Tính ra chúng mình cũng bên nhau được 6, 7 năm rồi nhỉ, từ cái thời 2019 còn ngây ngô tìm bạn trên Fb để tìm người dạy hóa cho Dũ rồi tình cờ quen biết nhau cho đến tận bây giờ cũng gần 7 năm – một con số không quá dài đối với một đời người, nhưng lại là cả một thanh xuân đối với hai đứa mình. Khoảng thời gian đó đủ dài để chúng mình hiểu tính nết nhau quá rõ, từ những sở thích nhỏ nhặt đến những lúc tâm trạng bất ổn nhất, và cũng đủ để Dũ thấy được Nhi đã nỗ lực, trưởng thành và thay đổi nhiều thế nào qua từng giai đoạn. Nhi biết không, điều Dũ nể nhất ở Nhi chính là sự "lì lợm" (tất nhiên là theo nghĩa tích cực nhất nhé!). Có những giai đoạn mà Dũ biết Nhi phải đối mặt với rất nhiều áp lực, từ chuyện học hành, định hướng cho đến những bộn bề riêng tư mà đôi khi lời nói chẳng thể diễn tả hết. Dù cuộc sống có đôi lúc "khó thở" hay những dự định không như ý, Nhi vẫn cứ lầm lụi cố gắng, chưa bao giờ Dũ thấy Nhi có ý định bỏ cuộc hay than vãn quá nhiều. Cái cách Nhi âm thầm chịu đựng rồi tự mình tìm cách vượt qua, không ồn ào nhưng đầy kiên định, thực sự khiến Dũ phải tự nhìn lại mình và lấy đó làm động lực để cố gắng nhiều hơn mỗi ngày. Dũ luôn trân trọng những lần hai đứa ngồi lại, chia sẻ về những dự định tương lai hay kể cả những nỗi sợ không tên. Nhi luôn cho Dũ thấy một hình ảnh đầy sức sống và tinh thần trách nhiệm với chính cuộc đời mình. Nhi giống như một người đang bền bỉ leo lên ngọn núi của riêng mình; dù đôi khi đường đi có gập ghềnh, dù mồ hôi có rơi, nhưng Nhi chưa bao giờ dừng lại. Chính sự kiên trì đó đã tạo nên một dấu ấn rất riêng, một "thương hiệu" mang tên Nhi trong lòng Dũ. Sinh nhật tuổi 20 – cái ngưỡng cửa đẹp nhất nhưng cũng là lúc chúng ta bắt đầu cảm thấy sức nặng của sự trưởng thành rõ rệt nhất. Dũ chẳng muốn chúc gì quá cao siêu hay xa vời, chỉ mong Nhi luôn giữ được ngọn lửa kiên định với con đường mà bạn đã chọn. Nhi cứ việc nỗ lực hết mình cho đam mê, cho những mục tiêu mà bạn đang ấp ủ, nhưng cũng đừng quên học cách chăm sóc và dịu dàng với chính bản thân mình một chút. Đừng quá khắt khe nếu đôi khi kết quả chưa đến ngay lập tức, vì mỗi hành trình đều cần thời gian để đơm hoa kết trái. Thi thoảng nếu thấy mệt quá, hay đôi chân có mỏi mệt giữa dòng đời tấp nập, thì hãy cứ cho phép mình nghỉ một nhịp, lùi lại một bước để hít thở và cảm nhận những niềm vui bình dị xung quanh. Hãy nhớ rằng, dù thế nào đi nữa, dù Nhi có thành công rực rỡ hay đang loay hoay với những khó khăn, thì vẫn luôn có Dũ ở đây – một người bạn cũ từ 2019 đến nay, luôn sẵn sàng lắng nghe, thấu hiểu và ủng hộ Nhi vô điều kiện. Suốt 7 năm qua chúng mình đã cùng nhau đi qua biết bao mùa mưa nắng, chia sẻ không biết bao nhiêu câu chuyện từ thời còn là những đứa trẻ vô tư cho đến khi trở thành những người trẻ đầy hoài bão của hiện tại. Dũ hy vọng rằng dù 10 năm hay 20 năm sau, khi chúng mình đã đạt được những vị trí nhất định trong cuộc sống, khi nhắc về những ngày tháng nỗ lực của tuổi 20 này, chúng mình vẫn có thể mỉm cười tự hào vì đã luôn có nhau trong những thời khắc quan trọng nhất. Thế giới ngoài kia có thể vận hành nhanh chóng và khắc nghiệt, nhưng tình bạn này sẽ mãi là một góc yên bình để chúng mình tìm về. Chúc cho tuổi 20 của Nhi thật rực rỡ, đầy ắp tiếng cười và những trải nghiệm đáng nhớ. Mong rằng mọi sự nỗ lực, mọi đêm thức trắng và mọi tâm huyết của bạn sẽ sớm được đền đáp bằng những thành quả xứng đáng nhất. Mừng sinh nhật Nhi, người bạn "già" tuyệt vời nhất của Dũ! Hãy cứ vững tin và tỏa sáng theo cách của riêng mình nhé!`;
+
+            const signatureHTML = `<div class="signature-block">Tỉnh Đồng Nai, Ngày 30 Tháng 04 Năm 2026<br><strong>Ký Tên: Phạm Thành Vũ</strong></div>`;
+
+            let i = 0;
+            const content = document.getElementById('letter-content');
+            function type() {
+                if (i < letterBody.length) {
+                    content.innerHTML += letterBody.charAt(i) === "\n" ? "<br>" : letterBody.charAt(i);
+                    i++;
+                    container.scrollTop = container.scrollHeight;
+                    setTimeout(type, 35);
+                } else {
+                    document.getElementById('cursor').style.display = 'none';
+                    content.innerHTML += signatureHTML;
+                    container.scrollTop = container.scrollHeight;
+                    confetti({ particleCount: 200, spread: 100, origin: { y: 0.8 } });
+                }
+            }
+            type();
+        }
+    </script>
+</body>
+</html>
